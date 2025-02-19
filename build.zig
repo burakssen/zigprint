@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
     // Create a static library
     const lib = b.addStaticLibrary(.{
         .name = "zigprint",
-        .root_source_file = b.path("src/printObject.zig"),
+        .root_source_file = b.path("src/zigprint.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) void {
 
     // Create a module for the library
     const zigprint_module = b.addModule("zigprint", .{
-        .root_source_file = b.path("src/printObject.zig"),
+        .root_source_file = b.path("src/zigprint.zig"),
         .target = target,
         .optimize = optimize,
     });
