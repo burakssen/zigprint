@@ -1,6 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
-const captureOutput = @import("printObject.zig").captureOutput;
+const captureOutput = @import("zigprint.zig").captureOutput;
 
 // Test types
 const Color = enum {
@@ -196,4 +196,36 @@ test "complex student struct" {
     try testing.expect(std.mem.indexOf(u8, output, "name: John Doe\n") != null);
     try testing.expect(std.mem.indexOf(u8, output, "age: 20\n") != null);
     try testing.expect(std.mem.indexOf(u8, output, "favorite_color: Custom\n") != null);
+}
+
+test "trial" {
+    const Country = enum {
+        Turkey,
+        USA,
+        Germany,
+    };
+
+    const User = struct {
+        name: []const u8,
+        age: u32,
+        country: Country,
+    };
+
+    const Room = struct {
+        name: []const u8,
+        users: []const User,
+    };
+
+    const user = User{
+        .name = "Burak",
+        .age = 25,
+        .country = Country.Turkey,
+    };
+
+    const room = Room{
+        .name = "Living Room",
+        .users = &[_]User{user},
+    };
+
+    try runTest(room, "name: Living Room\nusers: [\n    {\n        name: Burak\n        age: 25\n        country: Turkey\n    }\n]\n");
 }

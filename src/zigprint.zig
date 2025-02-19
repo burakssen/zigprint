@@ -35,7 +35,18 @@ fn printObjectWithIndent(writer: anytype, obj: anytype, indent_level: usize) Pri
             .Bool => try printValue(writer, "{}\n", .{obj}, "boolean value"),
             .Int => try printValue(writer, "{d}\n", .{obj}, "integer value"),
             .Float => try printValue(writer, "{d:.2}\n", .{obj}, "float value"),
-            .Pointer => try printPointerValue(writer, obj, objType),
+            .Pointer => {
+                const ptrType = @typeInfo(objType).Pointer;
+                if (ptrType.size == .Slice) {
+                    if (@TypeOf(obj) == []const u8) {
+                        try printValue(writer, "{s}\n", .{obj}, "string value");
+                    } else {
+                        try printSliceValue(writer, obj);
+                    }
+                } else {
+                    try printPointerValue(writer, obj, objType);
+                }
+            },
             .Array => try printArrayValue(writer, obj, indent_level),
             .Enum => try printValue(writer, "{s}\n", .{@tagName(obj)}, "enum value"),
             .Union => try printUnionValue(writer, obj),
@@ -55,9 +66,25 @@ fn printObjectWithIndent(writer: anytype, obj: anytype, indent_level: usize) Pri
             .Bool => try printValue(writer, "{}\n", .{fieldValue}, "boolean value"),
             .Int => try printValue(writer, "{d}\n", .{fieldValue}, "integer value"),
             .Float => try printValue(writer, "{d:.2}\n", .{fieldValue}, "float value"),
-            .Pointer => try printPointerValue(writer, fieldValue, field.type),
+            .Pointer => {
+                const ptrType = @typeInfo(field.type).Pointer;
+                if (ptrType.size == .Slice) {
+                    if (@TypeOf(fieldValue) == []const u8) {
+                        try printValue(writer, "{s}\n", .{fieldValue}, "string value");
+                    } else {
+                        try printSliceValue(writer, fieldValue);
+                    }
+                } else {
+                    try printPointerValue(writer, fieldValue, field.type);
+                }
+            },
             .Array => try printArrayValue(writer, fieldValue, indent_level),
-            .Struct => try printStructValue(writer, fieldValue, indent_level),
+            .Struct => {
+                try printValue(writer, "{{\n", .{}, "struct opening");
+                try printObjectWithIndent(writer, fieldValue, indent_level + 1);
+                try printIndent(writer, indent_level);
+                try printValue(writer, "}}\n", .{}, "struct closing");
+            },
             .Enum => try printValue(writer, "{s}\n", .{@tagName(fieldValue)}, "enum value"),
             .Union => try printUnionValue(writer, fieldValue),
             .Optional => try printOptionalValue(writer, fieldValue),
@@ -69,10 +96,23 @@ fn printObjectWithIndent(writer: anytype, obj: anytype, indent_level: usize) Pri
 fn printPointerValue(writer: anytype, value: anytype, typeInfo: anytype) PrintError!void {
     switch (@typeInfo(typeInfo).Pointer.size) {
         .One => try printValue(writer, "{any}\n", .{value.*}, "pointer value"),
-        .Slice => try printValue(writer, "{s}\n", .{value}, "slice value"),
+        .Slice => try printSliceValue(writer, value),
         .Many => try printValue(writer, "{any}\n", .{value}, "pointer array value"),
         else => try printValue(writer, "Unknown pointer type\n", .{}, "unknown pointer type"),
     }
+}
+
+fn printSliceValue(writer: anytype, slice: anytype) PrintError!void {
+    try printValue(writer, "[\n", .{}, "slice opening");
+    for (slice) |item| {
+        try printIndent(writer, 1);
+        try printValue(writer, "{{\n", .{}, "slice item opening");
+        try printObjectWithIndent(writer, item, 2);
+        try printIndent(writer, 1);
+        try printValue(writer, "}}\n", .{}, "slice item closing");
+    }
+    try printIndent(writer, 0);
+    try printValue(writer, "]\n", .{}, "slice closing");
 }
 
 fn printArrayValue(writer: anytype, array: anytype, indent_level: usize) PrintError!void {
@@ -83,13 +123,6 @@ fn printArrayValue(writer: anytype, array: anytype, indent_level: usize) PrintEr
     }
     try printIndent(writer, indent_level);
     try printValue(writer, "]\n", .{}, "array closing");
-}
-
-fn printStructValue(writer: anytype, structValue: anytype, indent_level: usize) PrintError!void {
-    try printValue(writer, "{{\n", .{}, "struct opening");
-    try printObjectWithIndent(writer, structValue, indent_level + 1);
-    try printIndent(writer, indent_level);
-    try printValue(writer, "}}\n", .{}, "struct closing");
 }
 
 fn printUnionValue(writer: anytype, unionValue: anytype) PrintError!void {
@@ -129,4 +162,12 @@ pub fn captureOutput(obj: anytype, allocator: std.mem.Allocator) ![]const u8 {
 
     try printObjectToWriter(list.writer(), obj);
     return list.toOwnedSlice();
+}
+
+pub fn processSlice(slice: []const u8) void {
+    // Iterate over the slice
+    for (slice) |item| {
+        // Process each item
+        std.debug.print("Item: {}\n", .{item});
+    }
 }
