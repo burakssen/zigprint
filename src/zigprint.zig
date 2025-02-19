@@ -104,14 +104,17 @@ fn printPointerValue(writer: anytype, value: anytype, typeInfo: anytype) PrintEr
 
 fn printSliceValue(writer: anytype, slice: anytype) PrintError!void {
     try printValue(writer, "[\n", .{}, "slice opening");
-    for (slice) |item| {
+    for (slice, 0..) |item, i| {
         try printIndent(writer, 1);
         try printValue(writer, "{{\n", .{}, "slice item opening");
         try printObjectWithIndent(writer, item, 2);
         try printIndent(writer, 1);
-        try printValue(writer, "}}\n", .{}, "slice item closing");
+        try printValue(writer, "}}", .{}, "slice item closing");
+        if (slice.len > 1 and i != slice.len - 1) {
+            try printValue(writer, ",", .{}, "endline");
+        }
+        try printValue(writer, "\n", .{}, "endline");
     }
-    try printIndent(writer, 0);
     try printValue(writer, "]\n", .{}, "slice closing");
 }
 
