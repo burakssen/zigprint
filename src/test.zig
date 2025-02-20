@@ -43,7 +43,6 @@ const Student = struct {
     graduation_year: ?u16,
     void_field: void,
     ref_count: *const u32,
-    data_ptr: [*]const u8,
 };
 
 fn runTest(obj: anytype, expected: []const u8) !void {
@@ -87,7 +86,7 @@ test "simple struct printing" {
         .name = "test",
     };
 
-    try runTest(obj, "id: 1\nname: test\n");
+    try runTest(obj, "SimpleStruct {\n    id: 1\n    name: test\n}\n");
 }
 
 test "enum printing" {
@@ -96,7 +95,7 @@ test "enum printing" {
     };
 
     const obj = TestStruct{ .color = .Red };
-    try runTest(obj, "color: Red\n");
+    try runTest(obj, "TestStruct {\n    color: Red\n}\n");
 }
 
 test "union printing" {
@@ -107,7 +106,7 @@ test "union printing" {
     const obj = TestStruct{
         .color = ColorValue{ .rgb = .{ .r = 255, .g = 128, .b = 0 } },
     };
-    try runTest(obj, "color: .rgb: { r: 255, g: 128, b: 0 }\n");
+    try runTest(obj, "TestStruct {\n    color: .rgb: { r: 255, g: 128, b: 0 }\n}\n");
 }
 
 test "optional values" {
@@ -120,7 +119,7 @@ test "optional values" {
         .maybe_string = "present",
         .maybe_int = null,
     };
-    try runTest(obj, "maybe_string: present\nmaybe_int: null\n");
+    try runTest(obj, "TestStruct {\n    maybe_string: present\n    maybe_int: null\n}\n");
 }
 
 test "array printing" {
@@ -131,7 +130,7 @@ test "array printing" {
     const obj = TestStruct{
         .numbers = .{ 1, 2, 3 },
     };
-    try runTest(obj, "numbers: [\n    1\n    2\n    3\n]\n");
+    try runTest(obj, "TestStruct {\n    numbers: [\n        1\n        2\n        3\n    ]\n}\n");
 }
 
 test "nested struct printing" {
@@ -147,12 +146,21 @@ test "nested struct printing" {
             .country = "Test Country",
         },
     };
-    try runTest(obj, "address: {\n    street: Test St\n    number: 123\n    city: Test City\n    country: Test Country\n}\n");
+    try runTest(obj,
+        \\TestStruct {
+        \\    address:     Address {
+        \\        street: Test St
+        \\        number: 123
+        \\        city: Test City
+        \\        country: Test Country
+        \\    }
+        \\}
+        \\
+    );
 }
 
 test "complex student struct" {
     var ref_count: u32 = 1;
-    const data = "some data";
 
     const student = Student{
         .id = 12345,
@@ -185,17 +193,47 @@ test "complex student struct" {
         .graduation_year = null,
         .void_field = {},
         .ref_count = &ref_count,
-        .data_ptr = data,
     };
 
-    const output = try captureOutput(student, testing.allocator);
-    defer testing.allocator.free(output);
-
-    // Test the complete output structure
-    try testing.expect(std.mem.startsWith(u8, output, "id: 12345\n"));
-    try testing.expect(std.mem.indexOf(u8, output, "name: John Doe\n") != null);
-    try testing.expect(std.mem.indexOf(u8, output, "age: 20\n") != null);
-    try testing.expect(std.mem.indexOf(u8, output, "favorite_color: Custom\n") != null);
+    try runTest(student,
+        \\Student {
+        \\    id: 12345
+        \\    name: John Doe
+        \\    age: 20
+        \\    address:     Address {
+        \\        street: Main Street
+        \\        number: 123
+        \\        city: Springfield
+        \\        country: USA
+        \\    }
+        \\    favorite_color: Custom
+        \\    color_value: .rgb: { r: 255, g: 128, b: 0 }
+        \\    grades: [
+        \\        85.50
+        \\        92.00
+        \\        78.50
+        \\    ]
+        \\    courses: [
+        \\                Course {
+        \\            id: 101
+        \\            name: Mathematics
+        \\            credits: 3
+        \\            active: true
+        \\        }
+        \\                Course {
+        \\            id: 102
+        \\            name: Physics
+        \\            credits: 4
+        \\            active: false
+        \\        }
+        \\    ]
+        \\    mentor_name: Dr. Smith
+        \\    graduation_year: null
+        \\    void_field: void
+        \\    ref_count: 1
+        \\}
+        \\
+    );
 }
 
 test "trial" {
@@ -227,5 +265,17 @@ test "trial" {
         .users = &[_]User{user},
     };
 
-    try runTest(room, "name: Living Room\nusers: [\n    {\n        name: Burak\n        age: 25\n        country: Turkey\n    }\n]\n");
+    try runTest(room,
+        \\Room {
+        \\    name: Living Room
+        \\    users: [
+        \\        User {
+        \\            name: Burak
+        \\            age: 25
+        \\            country: Turkey
+        \\        }
+        \\    ]
+        \\}
+        \\
+    );
 }
